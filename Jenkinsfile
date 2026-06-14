@@ -36,7 +36,10 @@ pipeline {
 
         stage('Install dependencies') {
             steps {
-                sh 'pip install -r requirements.txt'
+                sh '''
+                    python3 -m venv .venv
+                    .venv/bin/pip install -r requirements.txt
+                '''
             }
         }
 
@@ -44,7 +47,7 @@ pipeline {
             steps {
                 script {
                     def marker = params.CATEGORY == 'all' ? '' : "-m ${params.CATEGORY}"
-                    sh "python -m pytest ${marker} --alluredir=allure-results"
+                    sh ".venv/bin/python -m pytest ${marker} --alluredir=allure-results"
                 }
             }
         }
