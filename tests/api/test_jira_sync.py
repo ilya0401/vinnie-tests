@@ -1,7 +1,9 @@
 import allure
+import pytest
 from utils.vinny_API import VinnyApi
 
 
+@pytest.mark.jira_sync
 class TestJiraSync:
 
     @allure.title("Jira настроена и доступна: проверка через получение ответа в Ассистента от Jira")

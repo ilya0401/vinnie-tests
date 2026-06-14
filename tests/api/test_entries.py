@@ -1,7 +1,9 @@
 import allure
+import pytest
 from utils.vinny_API import VinnyApi
 
 
+@pytest.mark.entries
 class TestEntries:
 
     @allure.title("Отправляем запрос к ассистенту GET /entries: проверка доступности Ассистента")

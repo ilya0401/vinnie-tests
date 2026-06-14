@@ -1,4 +1,5 @@
 import allure
+import pytest
 import random
 from datetime import datetime
 from utils.vinny_API import VinnyApi
@@ -10,6 +11,7 @@ WORDS = [
 ]
 
 
+@pytest.mark.jira_integration
 class TestJiraIntegration:
 
     @allure.title("Worklog отправленной в Ассистента записи появляется в Jira")

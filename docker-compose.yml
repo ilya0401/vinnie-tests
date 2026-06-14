@@ -1,0 +1,19 @@
+services:
+  jenkins:
+    image: jenkins/jenkins:lts
+    ports:
+      - "8080:8080"
+      - "50000:50000"
+    volumes:
+      - jenkins-data:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+    restart: unless-stopped
+    networks:
+      - vinnie-network
+
+volumes:
+  jenkins-data:
+
+networks:
+  vinnie-network:
+    external: true
