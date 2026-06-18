@@ -62,18 +62,26 @@ pipeline {
             }
         }
         failure {
-            emailext(
-                to: "${params.EMAIL}",
-                subject: "Тесты упали: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                body: "Категория: ${params.CATEGORY}\nПодробности: ${env.BUILD_URL}allure"
-            )
+            withCredentials([usernamePassword(credentialsId: 'gmail-credentials', usernameVariable: 'GMAIL_USER', passwordVariable: 'GMAIL_PASS')]) {
+                withEnv([
+                    "EMAIL_TO=${params.EMAIL}",
+                    "EMAIL_SUBJECT=Тесты упали: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                    "EMAIL_BODY=Категория: ${params.CATEGORY}\nПодробности: ${env.BUILD_URL}allure"
+                ]) {
+                    sh '.venv/bin/python3 utils/send_email.py'
+                }
+            }
         }
         success {
-            emailext(
-                to: "${params.EMAIL}",
-                subject: "Тесты прошли: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                body: "Категория: ${params.CATEGORY}\nВсе тесты прошли успешно.\nОтчёт: ${env.BUILD_URL}allure"
-            )
+            withCredentials([usernamePassword(credentialsId: 'gmail-credentials', usernameVariable: 'GMAIL_USER', passwordVariable: 'GMAIL_PASS')]) {
+                withEnv([
+                    "EMAIL_TO=${params.EMAIL}",
+                    "EMAIL_SUBJECT=Тесты прошли: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                    "EMAIL_BODY=Категория: ${params.CATEGORY}\nВсе тесты прошли успешно.\nОтчёт: ${env.BUILD_URL}allure"
+                ]) {
+                    sh '.venv/bin/python3 utils/send_email.py'
+                }
+            }
         }
     }
 }
