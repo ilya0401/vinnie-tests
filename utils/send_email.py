@@ -7,7 +7,9 @@ msg['Subject'] = os.environ['EMAIL_SUBJECT']
 msg['From'] = os.environ['GMAIL_USER']
 msg['To'] = os.environ['EMAIL_TO']
 
-with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
+with smtplib.SMTP('smtp.gmail.com', 587) as smtp:
+    smtp.ehlo()
+    smtp.starttls()
     smtp.login(os.environ['GMAIL_USER'], os.environ['GMAIL_PASS'])
     smtp.send_message(msg)
 
