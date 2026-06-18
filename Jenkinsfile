@@ -65,22 +65,14 @@ pipeline {
             emailext(
                 to: "${params.EMAIL}",
                 subject: "Тесты упали: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                body: "Категория: ${params.CATEGORY}\nПодробности: ${env.BUILD_URL}allure",
-                smtpHost: 'smtp.gmail.com',
-                smtpPort: '465',
-                useSsl: true,
-                credentialsId: 'gmail-credentials'
+                body: "Категория: ${params.CATEGORY}\nПодробности: ${env.BUILD_URL}allure"
             )
         }
         success {
             emailext(
                 to: "${params.EMAIL}",
                 subject: "Тесты прошли: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                body: "Категория: ${params.CATEGORY}\nВсе тесты прошли успешно.\nОтчёт: ${env.BUILD_URL}allure",
-                smtpHost: 'smtp.gmail.com',
-                smtpPort: '465',
-                useSsl: true,
-                credentialsId: 'gmail-credentials'
+                body: "Категория: ${params.CATEGORY}\nВсе тесты прошли успешно.\nОтчёт: ${env.BUILD_URL}allure"
             )
         }
     }
