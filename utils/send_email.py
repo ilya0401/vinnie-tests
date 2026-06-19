@@ -1,28 +1,19 @@
 import os
-import urllib.request
-import urllib.error
-import json
+import requests
 
-payload = json.dumps({
-    'from': 'Jenkins <onboarding@resend.dev>',
-    'to': [os.environ['EMAIL_TO']],
-    'subject': os.environ['EMAIL_SUBJECT'],
-    'text': os.environ['EMAIL_BODY'],
-}).encode('utf-8')
-
-req = urllib.request.Request(
+response = requests.post(
     'https://api.resend.com/emails',
-    data=payload,
-    headers={
-        'Authorization': f'Bearer {os.environ["RESEND_API_KEY"]}',
-        'Content-Type': 'application/json',
+    headers={'Authorization': f'Bearer {os.environ["RESEND_API_KEY"]}'},
+    json={
+        'from': 'Jenkins <onboarding@resend.dev>',
+        'to': [os.environ['EMAIL_TO']],
+        'subject': os.environ['EMAIL_SUBJECT'],
+        'text': os.environ['EMAIL_BODY'],
     },
-    method='POST',
 )
 
-try:
-    with urllib.request.urlopen(req) as resp:
-        print(f"Email sent, status: {resp.status}")
-except urllib.error.HTTPError as e:
-    print(f"Resend error {e.code}: {e.read().decode('utf-8')}")
-    raise
+if response.ok:
+    print(f"Email sent, status: {response.status_code}")
+else:
+    print(f"Resend error {response.status_code}: {response.text}")
+    response.raise_for_status()
