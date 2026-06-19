@@ -20,5 +20,9 @@ req = urllib.request.Request(
     method='POST',
 )
 
-with urllib.request.urlopen(req) as resp:
-    print(f"Email sent, status: {resp.status}")
+try:
+    with urllib.request.urlopen(req) as resp:
+        print(f"Email sent, status: {resp.status}")
+except urllib.error.HTTPError as e:
+    print(f"Resend error {e.code}: {e.read().decode('utf-8')}")
+    raise
