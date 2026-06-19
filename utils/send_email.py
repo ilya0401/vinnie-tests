@@ -1,16 +1,24 @@
-import smtplib
 import os
-from email.mime.text import MIMEText
+import urllib.request
+import urllib.error
+import json
 
-msg = MIMEText(os.environ['EMAIL_BODY'], 'plain', 'utf-8')
-msg['Subject'] = os.environ['EMAIL_SUBJECT']
-msg['From'] = os.environ['GMAIL_USER']
-msg['To'] = os.environ['EMAIL_TO']
+payload = json.dumps({
+    'from': 'Jenkins <onboarding@resend.dev>',
+    'to': [os.environ['EMAIL_TO']],
+    'subject': os.environ['EMAIL_SUBJECT'],
+    'text': os.environ['EMAIL_BODY'],
+}).encode('utf-8')
 
-with smtplib.SMTP('smtp.gmail.com', 587) as smtp:
-    smtp.ehlo()
-    smtp.starttls()
-    smtp.login(os.environ['GMAIL_USER'], os.environ['GMAIL_PASS'])
-    smtp.send_message(msg)
+req = urllib.request.Request(
+    'https://api.resend.com/emails',
+    data=payload,
+    headers={
+        'Authorization': f'Bearer {os.environ["RESEND_API_KEY"]}',
+        'Content-Type': 'application/json',
+    },
+    method='POST',
+)
 
-print(f"Email sent to {os.environ['EMAIL_TO']}")
+with urllib.request.urlopen(req) as resp:
+    print(f"Email sent, status: {resp.status}")

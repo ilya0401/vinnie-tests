@@ -62,7 +62,7 @@ pipeline {
             }
         }
         failure {
-            withCredentials([usernamePassword(credentialsId: 'gmail-credentials', usernameVariable: 'GMAIL_USER', passwordVariable: 'GMAIL_PASS')]) {
+            withCredentials([string(credentialsId: 'resend-api-key', variable: 'RESEND_API_KEY')]) {
                 withEnv([
                     "EMAIL_TO=${params.EMAIL}",
                     "EMAIL_SUBJECT=Тесты упали: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
@@ -73,7 +73,7 @@ pipeline {
             }
         }
         success {
-            withCredentials([usernamePassword(credentialsId: 'gmail-credentials', usernameVariable: 'GMAIL_USER', passwordVariable: 'GMAIL_PASS')]) {
+            withCredentials([string(credentialsId: 'resend-api-key', variable: 'RESEND_API_KEY')]) {
                 withEnv([
                     "EMAIL_TO=${params.EMAIL}",
                     "EMAIL_SUBJECT=Тесты прошли: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
