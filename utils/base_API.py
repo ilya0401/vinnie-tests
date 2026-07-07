@@ -39,6 +39,7 @@ class BaseApi:
         response = session.request(method=method.value, url=final_url, headers=headers,
                                    params=params, data=data, json=json, **kwargs)
 
+        response.raise_for_status()
         parsed_model = parse_as_type(response.text, model_type) if model_type else None
         return ResponseSchema(raw=response, data=parsed_model)
 

@@ -57,13 +57,17 @@ class VinnyApi(BaseApi):
         return response.data
 
     def get_entry_by_id(self, entry_id: int) -> EntrySchema | None:
-        response = self.get(
-            endpoint=f"{self.Endpoints.ENTRIES}/{entry_id}",
-            model_type=EntrySchema,
-        )
-        if response.raw.status_code == 404:
-            return None
-        return response.data
+        import requests
+        try:
+            response = self.get(
+                endpoint=f"{self.Endpoints.ENTRIES}/{entry_id}",
+                model_type=EntrySchema,
+            )
+            return response.data
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 404:
+                return None
+            raise
 
     def check_jira_connection(self, task_key: str) -> JiraTestResponseSchema:
         response = self.get(
