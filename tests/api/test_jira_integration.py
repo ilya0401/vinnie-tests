@@ -14,7 +14,7 @@ class TestJiraIntegration:
             pytest.param(9, "30m", "тестовый дескрипшн, параметризация, позитивный кейс 2", id="task_9"),
         ],
     )
-    @allure.title("Worklog отправленной в Ассистента записи появляется в Jira")
+    @allure.title("[3.1.] Worklog отправленной в Ассистента записи появляется в Jira")
     def test_entry_worklog_appears_in_jira(
         self,
         vinny_api: VinnyApi,
