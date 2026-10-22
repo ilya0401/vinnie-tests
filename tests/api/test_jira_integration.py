@@ -1,7 +1,10 @@
+import time
+
 import allure
 import pytest
 from utils.vinny_API import VinnyApi
 from utils.jira_API import JiraApi
+from utils.wait import wait_until
 
 
 @pytest.mark.jira_integration
@@ -10,8 +13,8 @@ class TestJiraIntegration:
     @pytest.mark.parametrize(
         "task_number, time_spent, description",
         [
-            pytest.param(7, "1h 45m", "тестовый дескрипшн, параметризация, позитивный кейс 1", id="task_7"),
-            pytest.param(9, "30m", "тестовый дескрипшн, параметризация, позитивный кейс 2", id="task_9"),
+            pytest.param(1, "1h 45m", "тестовый дескрипшн, параметризация, позитивный кейс 1", id="task_1"),
+            pytest.param(1, "30m", "тестовый дескрипшн, параметризация, позитивный кейс 2", id="task_1_second"),
         ],
     )
     @allure.title("[3.1.] Worklog отправленной в Ассистента записи появляется в Jira")
@@ -33,9 +36,16 @@ class TestJiraIntegration:
                     time_spent=time_spent,
                     description=description,
                 )
-            with allure.step(f"Запросить последний worklog задачи {task} напрямую из Jira"):
-                last_worklog = jira_api.get_last_worklog(task)
-        with allure.step(f"Проверить что worklog для {task} существует в Jira"):
+            with allure.step(
+                f"Ассистент отправляет worklog в Jira асинхронно (через Kafka-очередь и консьюмер), "
+                f"поэтому дожидаемся появления worklog с описанием '{description}' у {task} (до 15с)"
+            ):
+                def _matching_worklog():
+                    worklog = jira_api.get_last_worklog(task)
+                    return worklog if worklog and description in worklog.comment else None
+
+                last_worklog = wait_until(_matching_worklog, timeout=15, interval=1)
+        with allure.step(f"Проверить что worklog с описанием '{description}' появился в Jira для {task}"):
             assert last_worklog is not None
         with allure.step(f"Проверить что описание записи в Ассистенте == комментарию worklog в Jira: '{description}' in '{last_worklog.comment}'"):
             assert description in last_worklog.comment
@@ -45,8 +55,8 @@ class TestJiraIntegration:
     @pytest.mark.parametrize(
         "task_number, time_spent, description",
         [
-            pytest.param(7, "", "1й негативный кейс, пустое время", id="empty_time_spent"),
-            pytest.param(7, "15m", "", id="empty_description"),
+            pytest.param(1, "", "1й негативный кейс, пустое время", id="empty_time_spent"),
+            pytest.param(1, "15m", "", id="empty_description"),
         ],
     )
     @allure.title("Запись с невалидными данными не попадает в Jira")
@@ -71,8 +81,12 @@ class TestJiraIntegration:
                 time_spent=time_spent,
                 description=description,
             )
-        with allure.step(f"Проверить что ассистент вернул jira_status == 'error' (получено: '{result.jira_status}')"):
-            assert result.jira_status == "error"
+        with allure.step(
+            "Ассистент принимает запись в очередь независимо от валидности (jira_status всегда 'queued' "
+            f"в мгновенном ответе: получено '{result.jira_status}'), поэтому ждём окно обработки консьюмером "
+            "и проверяем результат напрямую в Jira, а не мгновенный ответ"
+        ):
+            time.sleep(15)
         with allure.step(f"Проверить что новый worklog не появился в Jira для {task}"):
             worklog_after = jira_api.get_last_worklog(task)
             id_before = worklog_before.id if worklog_before else None
