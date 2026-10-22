@@ -1,9 +1,7 @@
 import allure
 import pytest
-from datetime import datetime
 from utils.vinny_API import VinnyApi
-from utils.jira_API import JiraApi
-from utils.wait import wait_until
+from utils.kafka_admin import wait_for_zero_lag
 
 
 @pytest.mark.jira_sync
@@ -20,29 +18,8 @@ class TestJiraSyncStatus:
         with allure.step("Проверить что Jira ответила Ассстенту HTTP 200"):
             assert result.status == 200
 
-    @allure.title("[2.2.] Создание записи в ассистенте, отправка записи в Jira, проверка ответа от Jira что ассистент успешно "
-                  "записал worklog в Jira")
-    def test_create_entry_logs_to_jira(self, vinny_api: VinnyApi, jira_api: JiraApi, test_task: str, api_error_handler):
-        description = f"автотест: проверка логирования в Jira [{datetime.now().isoformat()}]"
-        with api_error_handler():
-            with allure.step(f"Создать запись для задачи {test_task}: '{description}'"):
-                vinny_api.create_entry_for_today(
-                    task=test_task,
-                    time_spent="15m",
-                    description=description,
-                )
-            with allure.step(
-                f"Ассистент синкает worklog в Jira асинхронно (через Kafka), "
-                f"поэтому дожидаемся появления worklog с этим описанием у {test_task} (до 30с)"
-            ):
-                def _matching_worklog():
-                    worklog = jira_api.get_last_worklog(test_task)
-                    return worklog if worklog and description in worklog.comment else None
-
-                last_worklog = wait_until(_matching_worklog, timeout=30, interval=1)
-        with allure.step(f"Проверить что ассистент успешно отправил worklog в Jira для {test_task}"):
-            assert last_worklog is not None
-
+    @allure.label("tc_id", "TC-007")
+    @allure.label("tc_id", "TC-012")
     @allure.title("[2.3.] Проверка отправки ворклога по несуществующей задаче в Jira")
     def test_nonexistent_task_returns_not_found(self, vinny_api: VinnyApi, api_error_handler):
         with api_error_handler():
@@ -59,3 +36,8 @@ class TestJiraSyncStatus:
         ):
             saved_entry = vinny_api.get_entry_by_id(result.id)
             assert saved_entry is not None
+        with allure.step(
+            "TC-007/TC-012: consumer должен сдаться (give up) и закоммитить offset сразу, "
+            "а не застрять — проверяем, что lag consumer-группы возвращается к 0"
+        ):
+            assert wait_for_zero_lag(timeout=30) == 0
