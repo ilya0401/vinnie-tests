@@ -7,7 +7,8 @@ from utils.wait import wait_until
 
 
 @pytest.mark.jira_sync
-class TestJiraSync:
+class TestJiraSyncStatus:
+    """Явно проверяем статус, который сообщает сам ассистент."""
 
     @allure.title("[2.1.] Jira настроена и доступна: проверка через получение ответа в Ассистента от Jira")
     def test_jira_connection_is_configured_and_reachable(self, vinny_api: VinnyApi, test_task: str, api_error_handler):

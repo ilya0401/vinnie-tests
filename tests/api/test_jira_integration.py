@@ -8,7 +8,8 @@ from utils.wait import wait_until
 
 
 @pytest.mark.jira_integration
-class TestJiraIntegration:
+class TestJiraWorklogDelivery:
+    """Явно: проверяем факт доставки напрямую в Jira."""
 
     @pytest.mark.parametrize(
         "task_number, time_spent, description",
