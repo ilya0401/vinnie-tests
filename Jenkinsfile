@@ -20,9 +20,9 @@ pipeline {
 
     environment {
         VINNY_URL = 'http://vinnie:8000'
-        JIRA_TEST_TASK = 'KAN-9'
+        JIRA_TEST_TASK = 'KAN-1'
         TASK_PREFIX = 'KAN'
-        JIRA_URL = 'https://iyk040190.atlassian.net'
+        JIRA_URL = 'https://iyk040190-1790711247004.atlassian.net'
         JIRA_EMAIL = 'iyk040190@gmail.com'
         JIRA_API_TOKEN = credentials('jira-api-token')
     }
@@ -46,8 +46,10 @@ pipeline {
         stage('Run tests') {
             steps {
                 script {
-                    def marker = params.CATEGORY == 'all' ? '' : "-m ${params.CATEGORY}"
-                    sh ".venv/bin/python -m pytest ${marker} --alluredir=allure-results"
+                    // db-тесты рассчитаны на локальный Postgres (DB_HOST=localhost), а не на сеть
+                    // Jenkins-контейнера — поэтому в 'all' они исключены, а не просто пропущены маркером.
+                    def marker = params.CATEGORY == 'all' ? 'not db' : params.CATEGORY
+                    sh ".venv/bin/python -m pytest -m \"${marker}\" --clean-alluredir --alluredir=allure-results"
                 }
             }
         }
