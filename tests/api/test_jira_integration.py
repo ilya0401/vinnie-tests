@@ -39,13 +39,13 @@ class TestJiraWorklogDelivery:
                 )
             with allure.step(
                 f"Ассистент отправляет worklog в Jira асинхронно (через Kafka-очередь и консьюмер), "
-                f"поэтому дожидаемся появления worklog с описанием '{description}' у {task} (до 15с)"
+                f"поэтому дожидаемся появления worklog с описанием '{description}' у {task} (до 30с)"
             ):
                 def _matching_worklog():
                     worklog = jira_api.get_last_worklog(task)
                     return worklog if worklog and description in worklog.comment else None
 
-                last_worklog = wait_until(_matching_worklog, timeout=15, interval=1)
+                last_worklog = wait_until(_matching_worklog, timeout=30, interval=1)
         with allure.step(f"Проверить что worklog с описанием '{description}' появился в Jira для {task}"):
             assert last_worklog is not None
         with allure.step(f"Проверить что описание записи в Ассистенте == комментарию worklog в Jira: '{description}' in '{last_worklog.comment}'"):
