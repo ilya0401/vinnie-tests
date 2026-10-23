@@ -3,7 +3,7 @@ import pytest
 from utils.vinny_API import VinnyApi
 from utils.jira_API import JiraApi
 from utils.wait import wait_until
-from utils.kafka_admin import wait_for_zero_lag
+from utils.kafka_admin import assert_zero_lag
 
 
 @pytest.mark.jira_integration
@@ -53,7 +53,7 @@ class TestJiraWorklogDelivery:
         with allure.step(f"Проверить что время записи в Ассистенте == времени worklog в Jira: '{time_spent}' == '{last_worklog.timeSpent}'"):
             assert last_worklog.timeSpent == time_spent
         with allure.step("TC-011: проверить что lag consumer-группы вернулся к 0 после доставки"):
-            assert wait_for_zero_lag(timeout=10) == 0
+            assert_zero_lag(timeout=10)
 
     @pytest.mark.parametrize(
         "task_number, time_spent, description",
@@ -95,7 +95,7 @@ class TestJiraWorklogDelivery:
             f"[{tc_id}] Consumer должен обработать невалидную запись и сдаться (а не застрять в ретраях "
             f"навечно — именно это было причиной KAN-3), поэтому проверяем что lag возвращается к 0"
         ):
-            assert wait_for_zero_lag(timeout=30) == 0
+            assert_zero_lag(timeout=30)
         with allure.step(f"Проверить что новый worklog не появился в Jira для {task}"):
             worklog_after = jira_api.get_last_worklog(task)
             id_before = worklog_before.id if worklog_before else None

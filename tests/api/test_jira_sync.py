@@ -1,7 +1,7 @@
 import allure
 import pytest
 from utils.vinny_API import VinnyApi
-from utils.kafka_admin import wait_for_zero_lag
+from utils.kafka_admin import assert_zero_lag
 
 
 @pytest.mark.jira_sync
@@ -40,4 +40,4 @@ class TestJiraSyncStatus:
             "TC-007/TC-012: consumer должен сдаться (give up) и закоммитить offset сразу, "
             "а не застрять — проверяем, что lag consumer-группы возвращается к 0"
         ):
-            assert wait_for_zero_lag(timeout=30) == 0
+            assert_zero_lag(timeout=30)
