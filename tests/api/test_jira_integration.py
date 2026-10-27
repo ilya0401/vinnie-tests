@@ -18,6 +18,7 @@ class TestJiraWorklogDelivery:
             pytest.param(1, "30m", "тестовый дескрипшн, параметризация, позитивный кейс 2", id="task_1_second"),
         ],
     )
+    @allure.label("tc_id", "TC-011")
     @allure.title("[3.1.] Worklog отправленной в Ассистента записи появляется в Jira")
     def test_entry_worklog_appears_in_jira(
         self,
@@ -32,11 +33,16 @@ class TestJiraWorklogDelivery:
         task = f"{task_prefix}-{task_number}"
         with api_error_handler():
             with allure.step(f"Создать запись в ассистенте для задачи {task}, точный текст записи, созданной в Ассистенте: '{description}'"):
-                vinny_api.create_entry_for_today(
+                confirm_result = vinny_api.create_entry_for_today(
                     task=task,
                     time_spent=time_spent,
                     description=description,
                 )
+            with allure.step(
+                f"Проверить что Ассистент поставил запись в очередь на доставку в Jira (jira_status='queued'), "
+                f"получено: '{confirm_result.jira_status}'"
+            ):
+                assert confirm_result.jira_status == "queued"
             with allure.step(
                 f"Ассистент отправляет worklog в Jira асинхронно (через Kafka-очередь и консьюмер), "
                 f"поэтому дожидаемся появления worklog с описанием '{description}' у {task} (до 30с)"
@@ -53,11 +59,18 @@ class TestJiraWorklogDelivery:
         with allure.step(f"Проверить что время записи в Ассистенте == времени worklog в Jira: '{time_spent}' == '{last_worklog.timeSpent}'"):
             assert last_worklog.timeSpent == time_spent
 
+    _INVALID_ENTRY_TC_IDS = {
+        "empty_time_spent": "TC-015",
+        "empty_description": "TC-013",
+        "whitespace_only_description": "TC-014",
+    }
+
     @pytest.mark.parametrize(
         "task_number, time_spent, description",
         [
             pytest.param(1, "", "1й негативный кейс, пустое время", id="empty_time_spent"),
             pytest.param(1, "15m", "", id="empty_description"),
+            pytest.param(1, "15m", "   ", id="whitespace_only_description"),
         ],
     )
     @allure.title("Запись с невалидными данными не попадает в Jira")
@@ -66,10 +79,12 @@ class TestJiraWorklogDelivery:
         vinny_api: VinnyApi,
         jira_api: JiraApi,
         task_prefix: str,
+        request,
         task_number,
         time_spent,
         description,
     ):
+        allure.dynamic.label("tc_id", self._INVALID_ENTRY_TC_IDS[request.node.callspec.id])
         task = f"{task_prefix}-{task_number}"
         with allure.step(f"Запомнить id последнего worklog задачи {task} до попытки создания записи"):
             worklog_before = jira_api.get_last_worklog(task)

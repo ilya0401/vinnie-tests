@@ -43,6 +43,22 @@ class TestJiraSyncStatus:
         with allure.step(f"Проверить что ассистент успешно отправил worklog в Jira для {test_task}"):
             assert last_worklog is not None
 
+    @allure.label("tc_id", "TC-002")
+    @allure.title("[2.4.] Запись без указанной задачи не публикуется в Kafka")
+    def test_entry_without_task_is_not_published_to_kafka(self, vinny_api: VinnyApi, api_error_handler):
+        with api_error_handler():
+            with allure.step("Создать запись в Ассистенте без указания задачи (task='—')"):
+                result = vinny_api.create_entry_for_today(
+                    task="—",
+                    time_spent="15m",
+                    description="автотест: запись без задачи",
+                )
+        with allure.step(
+            f"Проверить что Ассистент не поставил запись в очередь на доставку в Jira "
+            f"(jira_status='skipped'), получено: '{result.jira_status}'"
+        ):
+            assert result.jira_status == "skipped"
+
     @allure.title("[2.3.] Проверка отправки ворклога по несуществующей задаче в Jira")
     def test_nonexistent_task_returns_not_found(self, vinny_api: VinnyApi, api_error_handler):
         with api_error_handler():
