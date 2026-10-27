@@ -5,6 +5,7 @@ from contextlib import contextmanager
 from dotenv import load_dotenv
 from utils.vinny_API import VinnyApi
 from utils.jira_API import JiraApi
+from utils.kafka_ui_API import KafkaUiApi
 
 load_dotenv(".env.test")
 
@@ -58,4 +59,12 @@ def jira_api() -> JiraApi:
         url=os.getenv("JIRA_URL", "https://iyk040190.atlassian.net"),
         email=os.getenv("JIRA_EMAIL", "iyk040190@gmail.com"),
         token=os.getenv("JIRA_API_TOKEN", ""),
+    )
+
+
+@pytest.fixture(scope="session")
+def kafka_ui_api() -> KafkaUiApi:
+    return KafkaUiApi(
+        url=os.getenv("KAFKA_UI_URL", "http://localhost:8090"),
+        cluster="vinnie",
     )

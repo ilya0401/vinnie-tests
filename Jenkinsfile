@@ -20,6 +20,7 @@ pipeline {
 
     environment {
         VINNY_URL = 'http://vinnie:8000'
+        KAFKA_UI_URL = 'http://kafka-ui:8080'
         JIRA_TEST_TASK = 'KAN-1'
         TASK_PREFIX = 'KAN'
         JIRA_URL = 'https://iyk040190-1790711247004.atlassian.net'

@@ -3,7 +3,11 @@ import pytest
 from datetime import datetime
 from utils.vinny_API import VinnyApi
 from utils.jira_API import JiraApi
+from utils.kafka_ui_API import KafkaUiApi
 from utils.wait import wait_until
+
+JIRA_TOPIC = "jira-worklog-requests"
+JIRA_CONSUMER_GROUP = "jira-delivery"
 
 
 @pytest.mark.jira_sync
@@ -59,8 +63,11 @@ class TestJiraSyncStatus:
         ):
             assert result.jira_status == "skipped"
 
+    @allure.label("tc_id", "TC-007")
     @allure.title("[2.3.] Проверка отправки ворклога по несуществующей задаче в Jira")
-    def test_nonexistent_task_returns_not_found(self, vinny_api: VinnyApi, api_error_handler):
+    def test_nonexistent_task_returns_not_found(
+        self, vinny_api: VinnyApi, kafka_ui_api: KafkaUiApi, api_error_handler
+    ):
         with api_error_handler():
             with allure.step("Создать запись в Ассистенте с несуществующей задачей KAN-99999"):
                 result = vinny_api.create_entry_for_today(
@@ -75,3 +82,8 @@ class TestJiraSyncStatus:
         ):
             saved_entry = vinny_api.get_entry_by_id(result.id)
             assert saved_entry is not None
+        with allure.step(
+            f"Проверить что консьюмер сдался и закоммитил offset немедленно (TC-012: lag консьюмер-группы "
+            f"'{JIRA_CONSUMER_GROUP}' по топику '{JIRA_TOPIC}' вернулся к 0), не уйдя в бесконечный retry"
+        ):
+            kafka_ui_api.wait_for_zero_lag(topic=JIRA_TOPIC, group_id=JIRA_CONSUMER_GROUP, timeout=30)
