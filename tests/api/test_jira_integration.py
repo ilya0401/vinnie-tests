@@ -156,3 +156,8 @@ class TestKafkaPublish:
             assert message["task"] == task
             assert message["time_spent"] == time_spent
             assert message["description"] == description
+        with allure.step(
+            f"Проверить что запись entry_id={result.id} не попала в другие топики кластера "
+            f"(кроме '{JIRA_TOPIC}')"
+        ):
+            kafka_ui_api.assert_entry_absent_from_other_topics(entry_id=result.id, exclude_topic=JIRA_TOPIC)
