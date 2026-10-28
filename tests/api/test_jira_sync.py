@@ -71,3 +71,24 @@ class TestJiraSyncStatus:
             f"'{JIRA_CONSUMER_GROUP}' по топику '{JIRA_TOPIC}' вернулся к 0), не уйдя в бесконечный retry"
         ):
             kafka_ui_api.wait_for_zero_lag(topic=JIRA_TOPIC, group_id=JIRA_CONSUMER_GROUP, timeout=30)
+
+    @allure.label("bug_id", "KAN-5")
+    @allure.title("[2.6.] Malformed task-key (Jira отвечает HTTP 400, не 404) не уходит в бесконечный retry")
+    def test_malformed_task_key_does_not_retry_forever(
+        self, vinny_api: VinnyApi, kafka_ui_api: KafkaUiApi, api_error_handler
+    ):
+        with api_error_handler():
+            with allure.step(
+                "Создать запись в Ассистенте с malformed task-key 'KAN-1%00' "
+                "(Jira отвечает HTTP 400, не 404 — отдельная ветка от TC-007/012)"
+            ):
+                vinny_api.create_entry_for_today(
+                    task="KAN-1%00",
+                    time_spent="15m",
+                    description="автотест: malformed task-key",
+                )
+        with allure.step(
+            f"Проверить что консьюмер сдался и закоммитил offset (KAN-5: lag консьюмер-группы "
+            f"'{JIRA_CONSUMER_GROUP}' по топику '{JIRA_TOPIC}' вернулся к 0), не уйдя в бесконечный retry"
+        ):
+            kafka_ui_api.wait_for_zero_lag(topic=JIRA_TOPIC, group_id=JIRA_CONSUMER_GROUP, timeout=30)
