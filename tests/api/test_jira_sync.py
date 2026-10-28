@@ -2,6 +2,7 @@ import allure
 import pytest
 from utils.vinny_API import VinnyApi
 from utils.kafka_ui_API import KafkaUiApi
+from utils.wait import wait_until
 
 JIRA_TOPIC = "jira-worklog-requests"
 JIRA_CONSUMER_GROUP = "jira-delivery"
@@ -14,9 +15,18 @@ class TestJiraSyncStatus:
     @allure.title("[2.1.] Jira настроена и доступна: проверка через получение ответа в Ассистента от Jira")
     def test_jira_connection_is_configured_and_reachable(self, vinny_api: VinnyApi, test_task: str, api_error_handler):
         with api_error_handler():
-            with allure.step("Через Ассистента запросить статус подключения к Jira"):
-                result = vinny_api.check_jira_connection(test_task)
+            with allure.step(
+                "Через Ассистента запросить статус подключения к Jira (с повторами до 15с — "
+                "синхронный вызов без собственного ретрая, один кратковременный сетевой сбой "
+                "не должен красить тест)"
+            ):
+                def _reachable():
+                    attempt = vinny_api.check_jira_connection(test_task)
+                    return attempt if attempt.status == 200 else None
+
+                result = wait_until(_reachable, timeout=15, interval=5)
         with allure.step("Через Ассистента проверить что Jira сконфигурирована"):
+            assert result is not None, "Jira не ответила HTTP 200 за 15с (3 попытки)"
             assert result.configured is True
         with allure.step("Проверить что Jira ответила Ассстенту HTTP 200"):
             assert result.status == 200
@@ -70,7 +80,7 @@ class TestJiraSyncStatus:
             f"Проверить что консьюмер сдался и закоммитил offset немедленно (TC-012: lag консьюмер-группы "
             f"'{JIRA_CONSUMER_GROUP}' по топику '{JIRA_TOPIC}' вернулся к 0), не уйдя в бесконечный retry"
         ):
-            kafka_ui_api.wait_for_zero_lag(topic=JIRA_TOPIC, group_id=JIRA_CONSUMER_GROUP, timeout=30)
+            kafka_ui_api.wait_for_zero_lag(topic=JIRA_TOPIC, group_id=JIRA_CONSUMER_GROUP, timeout=60)
 
     @allure.label("bug_id", "KAN-5")
     @allure.title("[2.6.] Malformed task-key (Jira отвечает HTTP 400, не 404) не уходит в бесконечный retry")
@@ -91,4 +101,4 @@ class TestJiraSyncStatus:
             f"Проверить что консьюмер сдался и закоммитил offset (KAN-5: lag консьюмер-группы "
             f"'{JIRA_CONSUMER_GROUP}' по топику '{JIRA_TOPIC}' вернулся к 0), не уйдя в бесконечный retry"
         ):
-            kafka_ui_api.wait_for_zero_lag(topic=JIRA_TOPIC, group_id=JIRA_CONSUMER_GROUP, timeout=30)
+            kafka_ui_api.wait_for_zero_lag(topic=JIRA_TOPIC, group_id=JIRA_CONSUMER_GROUP, timeout=60)

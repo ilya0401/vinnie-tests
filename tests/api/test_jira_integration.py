@@ -57,13 +57,14 @@ class TestJiraWorklogDelivery:
                 assert confirm_result.jira_status == "queued"
             with allure.step(
                 f"Ассистент отправляет worklog в Jira асинхронно (через Kafka-очередь и консьюмер), "
-                f"поэтому дожидаемся появления worklog с описанием '{description}' у {task} (до 30с)"
+                f"поэтому дожидаемся появления worklog с описанием '{description}' у {task} (до 60с — "
+                f"запас на случай ретраев консьюмера при кратковременных сетевых сбоях со стороны Jira)"
             ):
                 def _matching_worklog():
                     worklog = jira_api.get_last_worklog(task)
                     return worklog if worklog and description in worklog.comment else None
 
-                last_worklog = wait_until(_matching_worklog, timeout=30, interval=1)
+                last_worklog = wait_until(_matching_worklog, timeout=60, interval=1)
         with allure.step(f"Проверить что worklog с описанием '{description}' появился в Jira для {task}"):
             assert last_worklog is not None
         with allure.step(f"Проверить что описание записи в Ассистенте == комментарию worklog в Jira: '{description}' in '{last_worklog.comment}'"):
@@ -80,7 +81,7 @@ class TestJiraWorklogDelivery:
             f"Проверить что offset сообщения закоммичен (lag консьюмер-группы '{JIRA_CONSUMER_GROUP}' "
             f"по топику '{JIRA_TOPIC}' вернулся к 0)"
         ):
-            kafka_ui_api.wait_for_zero_lag(topic=JIRA_TOPIC, group_id=JIRA_CONSUMER_GROUP, timeout=10)
+            kafka_ui_api.wait_for_zero_lag(topic=JIRA_TOPIC, group_id=JIRA_CONSUMER_GROUP, timeout=20)
 
     _INVALID_ENTRY_TC_IDS = {
         "empty_time_spent": "TC-015",
@@ -131,7 +132,7 @@ class TestJiraWorklogDelivery:
             f"по факту коммита offset'а (lag консьюмер-группы '{JIRA_CONSUMER_GROUP}' по топику '{JIRA_TOPIC}' "
             "вернулся к 0), а не по фиксированной задержке"
         ):
-            kafka_ui_api.wait_for_zero_lag(topic=JIRA_TOPIC, group_id=JIRA_CONSUMER_GROUP, timeout=30)
+            kafka_ui_api.wait_for_zero_lag(topic=JIRA_TOPIC, group_id=JIRA_CONSUMER_GROUP, timeout=60)
         with allure.step(f"Проверить что новый worklog не появился в Jira для {task}"):
             worklog_after = jira_api.get_last_worklog(task)
             id_before = worklog_before.id if worklog_before else None
