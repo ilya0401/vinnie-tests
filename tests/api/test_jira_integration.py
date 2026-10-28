@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime, timedelta
 
 import allure
 import pytest
@@ -16,13 +16,14 @@ class TestJiraWorklogDelivery:
     """Явно: проверяем факт доставки напрямую в Jira."""
 
     @pytest.mark.parametrize(
-        "task_number, time_spent, description",
+        "task_number, time_spent, description, days_ago",
         [
-            pytest.param(1, "1h 45m", "тестовый дескрипшн, параметризация, позитивный кейс 1", id="task_1"),
-            pytest.param(1, "30m", "тестовый дескрипшн, параметризация, позитивный кейс 2", id="task_1_second"),
-            pytest.param(1, "1d", "тестовый дескрипшн, граница форматов: единица измерения сутки", id="task_1_day_unit"),
-            pytest.param(1, "1w", "тестовый дескрипшн, граница форматов: единица измерения неделя", id="task_1_week_unit"),
-            pytest.param(1, "0m", "тестовый дескрипшн, граница: минимальная продолжительность, принимаемая Jira", id="task_1_zero_minutes"),
+            pytest.param(1, "1h 45m", "тестовый дескрипшн, параметризация, позитивный кейс 1", 0, id="task_1"),
+            pytest.param(1, "30m", "тестовый дескрипшн, параметризация, позитивный кейс 2", 0, id="task_1_second"),
+            pytest.param(1, "1d", "тестовый дескрипшн, граница форматов: единица измерения сутки", 0, id="task_1_day_unit"),
+            pytest.param(1, "1w", "тестовый дескрипшн, граница форматов: единица измерения неделя", 0, id="task_1_week_unit"),
+            pytest.param(1, "0m", "тестовый дескрипшн, граница: минимальная продолжительность, принимаемая Jira", 0, id="task_1_zero_minutes"),
+            pytest.param(1, "15m", "тестовый дескрипшн, дата записи — вчера, не сегодня", 1, id="task_1_yesterday"),
         ],
     )
     @allure.label("tc_id", "TC-011")
@@ -37,12 +38,15 @@ class TestJiraWorklogDelivery:
         task_number,
         time_spent,
         description,
+        days_ago,
     ):
         task = f"{task_prefix}-{task_number}"
+        entry_date = (date.today() - timedelta(days=days_ago)).isoformat()
         with api_error_handler():
-            with allure.step(f"Создать запись в ассистенте для задачи {task}, точный текст записи, созданной в Ассистенте: '{description}'"):
-                confirm_result = vinny_api.create_entry_for_today(
+            with allure.step(f"Создать запись в ассистенте для задачи {task} на дату {entry_date}, точный текст записи, созданной в Ассистенте: '{description}'"):
+                confirm_result = vinny_api.create_entry(
                     task=task,
+                    entry_date=entry_date,
                     time_spent=time_spent,
                     description=description,
                 )
@@ -66,6 +70,12 @@ class TestJiraWorklogDelivery:
             assert description in last_worklog.comment
         with allure.step(f"Проверить что время записи в Ассистенте == времени worklog в Jira: '{time_spent}' == '{last_worklog.timeSpent}'"):
             assert last_worklog.timeSpent == time_spent
+        with allure.step(
+            f"Проверить что дата worklog в Jira (started) == отправленной дате записи: "
+            f"'{entry_date}' == '{last_worklog.started[:10] if last_worklog.started else None}'"
+        ):
+            assert last_worklog.started is not None
+            assert last_worklog.started[:10] == entry_date
         with allure.step(
             f"Проверить что offset сообщения закоммичен (lag консьюмер-группы '{JIRA_CONSUMER_GROUP}' "
             f"по топику '{JIRA_TOPIC}' вернулся к 0)"
