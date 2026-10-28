@@ -36,6 +36,7 @@ class TestEntries:
             pytest.param("2026/07/14", id="slash_format"),
             pytest.param("20260714", id="compact_iso_no_dashes"),
             pytest.param("2026-W29-2", id="iso_week_date"),
+            pytest.param("14-07-2026", id="dd_mm_yyyy_dashes"),
         ],
     )
     @allure.label("bug_id", "KAN-4")
