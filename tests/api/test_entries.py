@@ -28,16 +28,19 @@ class TestEntries:
                     description="автотест: проверка создания записи",
                 )
         with allure.step("Проверить что status создания записи == success"):
+            # Ветка status=="error" (невалидная дата в /confirm) не покрыта нигде в наборе —
+            # найдено при ревизии 2026-10-28, не исправлено, оставлено как известный gap.
             assert result.status == "success"
 
     @allure.title("[1.3.] Данные созданной записи в Ассистенте совпадают с отправленными в него")
     def test_created_entry_data_matches_sent_data(self, vinny_api: VinnyApi, test_task: str, api_error_handler):
         description = "автотест: проверка данных записи"
+        time_spent = "1h"
         with api_error_handler():
             with allure.step(f"Создать запись для задачи {test_task} с описанием '{description}'"):
                 result = vinny_api.create_entry_for_today(
                     task=test_task,
-                    time_spent="1h",
+                    time_spent=time_spent,
                     description=description,
                 )
             with allure.step(f"Запросить у ассистента запись по id={result.id}"):
@@ -46,3 +49,5 @@ class TestEntries:
             assert entry.task == test_task
         with allure.step(f"Проверить description: отправлено '{description}' == получено '{entry.description}'"):
             assert entry.description == description
+        with allure.step(f"Проверить time_spent: отправлено '{time_spent}' == получено '{entry.time_spent}'"):
+            assert entry.time_spent == time_spent
