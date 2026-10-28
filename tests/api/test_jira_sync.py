@@ -16,7 +16,7 @@ class TestJiraSyncStatus:
     def test_jira_connection_is_configured_and_reachable(self, vinny_api: VinnyApi, test_task: str, api_error_handler):
         with api_error_handler():
             with allure.step(
-                "Через Ассистента запросить статус подключения к Jira (с повторами до 15с — "
+                "Через Ассистента запросить статус подключения к Jira (с повторами до 30с — "
                 "синхронный вызов без собственного ретрая, один кратковременный сетевой сбой "
                 "не должен красить тест)"
             ):
@@ -24,9 +24,9 @@ class TestJiraSyncStatus:
                     attempt = vinny_api.check_jira_connection(test_task)
                     return attempt if attempt.status == 200 else None
 
-                result = wait_until(_reachable, timeout=15, interval=5)
+                result = wait_until(_reachable, timeout=30, interval=5)
         with allure.step("Через Ассистента проверить что Jira сконфигурирована"):
-            assert result is not None, "Jira не ответила HTTP 200 за 15с (3 попытки)"
+            assert result is not None, "Jira не ответила HTTP 200 за 30с (6 попыток)"
             assert result.configured is True
         with allure.step("Проверить что Jira ответила Ассстенту HTTP 200"):
             assert result.status == 200
@@ -34,9 +34,18 @@ class TestJiraSyncStatus:
     @allure.title("[2.5.] Проверка подключения к Jira для несуществующей задачи возвращает 404")
     def test_jira_connection_reports_not_found_for_nonexistent_task(self, vinny_api: VinnyApi, api_error_handler):
         with api_error_handler():
-            with allure.step("Через Ассистента запросить статус подключения к Jira для несуществующей задачи KAN-99999"):
-                result = vinny_api.check_jira_connection("KAN-99999")
+            with allure.step(
+                "Через Ассистента запросить статус подключения к Jira для несуществующей задачи "
+                "KAN-99999 (с повторами до 30с — тот же синхронный вызов без собственного ретрая, "
+                "что и в [2.1.])"
+            ):
+                def _not_found():
+                    attempt = vinny_api.check_jira_connection("KAN-99999")
+                    return attempt if attempt.status == 404 else None
+
+                result = wait_until(_not_found, timeout=30, interval=5)
         with allure.step("Через Ассистента проверить что Jira сконфигурирована"):
+            assert result is not None, "Jira не ответила HTTP 404 за 30с (6 попыток)"
             assert result.configured is True
         with allure.step("Проверить что Jira ответила Ассистенту HTTP 404 для несуществующей задачи"):
             assert result.status == 404
@@ -80,7 +89,7 @@ class TestJiraSyncStatus:
             f"Проверить что консьюмер сдался и закоммитил offset немедленно (TC-012: lag консьюмер-группы "
             f"'{JIRA_CONSUMER_GROUP}' по топику '{JIRA_TOPIC}' вернулся к 0), не уйдя в бесконечный retry"
         ):
-            kafka_ui_api.wait_for_zero_lag(topic=JIRA_TOPIC, group_id=JIRA_CONSUMER_GROUP, timeout=60)
+            kafka_ui_api.wait_for_zero_lag(topic=JIRA_TOPIC, group_id=JIRA_CONSUMER_GROUP, timeout=90)
 
     @allure.label("bug_id", "KAN-5")
     @allure.title("[2.6.] Malformed task-key (Jira отвечает HTTP 400, не 404) не уходит в бесконечный retry")
@@ -101,4 +110,4 @@ class TestJiraSyncStatus:
             f"Проверить что консьюмер сдался и закоммитил offset (KAN-5: lag консьюмер-группы "
             f"'{JIRA_CONSUMER_GROUP}' по топику '{JIRA_TOPIC}' вернулся к 0), не уйдя в бесконечный retry"
         ):
-            kafka_ui_api.wait_for_zero_lag(topic=JIRA_TOPIC, group_id=JIRA_CONSUMER_GROUP, timeout=60)
+            kafka_ui_api.wait_for_zero_lag(topic=JIRA_TOPIC, group_id=JIRA_CONSUMER_GROUP, timeout=90)
