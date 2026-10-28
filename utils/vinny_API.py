@@ -75,3 +75,21 @@ class VinnyApi(BaseApi):
             model_type=JiraTestResponseSchema,
         )
         return response.data
+
+    def process_audio(
+        self,
+        file_bytes: bytes,
+        filename: str = "audio.wav",
+        content_type: str = "audio/wav",
+        context: str = "",
+        task_prefix: str = "",
+        task_only: str = "",
+    ) -> ConfirmResponseSchema:
+        response = self.send(
+            APIMethods.POST,
+            endpoint=self.Endpoints.PROCESS,
+            files={"file": (filename, file_bytes, content_type)},
+            data={"context": context, "task_prefix": task_prefix, "task_only": task_only},
+            model_type=ConfirmResponseSchema,
+        )
+        return response.data

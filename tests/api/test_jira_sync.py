@@ -21,6 +21,16 @@ class TestJiraSyncStatus:
         with allure.step("Проверить что Jira ответила Ассстенту HTTP 200"):
             assert result.status == 200
 
+    @allure.title("[2.5.] Проверка подключения к Jira для несуществующей задачи возвращает 404")
+    def test_jira_connection_reports_not_found_for_nonexistent_task(self, vinny_api: VinnyApi, api_error_handler):
+        with api_error_handler():
+            with allure.step("Через Ассистента запросить статус подключения к Jira для несуществующей задачи KAN-99999"):
+                result = vinny_api.check_jira_connection("KAN-99999")
+        with allure.step("Через Ассистента проверить что Jira сконфигурирована"):
+            assert result.configured is True
+        with allure.step("Проверить что Jira ответила Ассистенту HTTP 404 для несуществующей задачи"):
+            assert result.status == 404
+
     @allure.label("tc_id", "TC-002")
     @allure.title("[2.4.] Запись без указанной задачи не публикуется в Kafka")
     def test_entry_without_task_is_not_published_to_kafka(self, vinny_api: VinnyApi, api_error_handler):

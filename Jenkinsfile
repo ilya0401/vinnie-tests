@@ -8,7 +8,7 @@ pipeline {
     parameters {
         choice(
             name: 'CATEGORY',
-            choices: ['all', 'entries', 'jira_sync', 'jira_integration'],
+            choices: ['all', 'entries', 'jira_sync', 'jira_integration', 'process'],
             description: 'Категория тестов для запуска. all — запустить все тесты'
         )
         string(

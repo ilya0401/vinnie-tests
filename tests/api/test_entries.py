@@ -74,3 +74,18 @@ class TestEntries:
             assert entry.description == description
         with allure.step(f"Проверить time_spent: отправлено '{time_spent}' == получено '{entry.time_spent}'"):
             assert entry.time_spent == time_spent
+
+    @pytest.mark.parametrize(
+        "nonexistent_id",
+        [
+            pytest.param(999999999, id="far_above_any_real_id"),
+            pytest.param(0, id="zero"),
+            pytest.param(-1, id="negative"),
+        ],
+    )
+    @allure.title("[1.5.] Запрос записи по не существующему id возвращает 404")
+    def test_get_entry_by_nonexistent_id_returns_none(self, vinny_api: VinnyApi, nonexistent_id):
+        with allure.step(f"Запросить у ассистента запись по заведомо не существующему id={nonexistent_id}"):
+            entry = vinny_api.get_entry_by_id(nonexistent_id)
+        with allure.step(f"Проверить что GET /entries/{nonexistent_id} вернул 404 (None)"):
+            assert entry is None
