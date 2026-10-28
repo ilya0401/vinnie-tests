@@ -21,8 +21,10 @@ class ParsedEntrySchema(BaseModel):
 class ConfirmResponseSchema(BaseModel):
     status: str
     voice_message: str
-    jira_status: str
-    id: int
+    # При status=="error" (невалидная дата) /confirm не возвращает jira_status/id вовсе —
+    # обнаружено при закрытии известного gap'а (ветка status=="error" не была покрыта тестами).
+    jira_status: Optional[str] = None
+    id: Optional[int] = None
     transcribed: Optional[str] = None
     parsed: Optional[ParsedEntrySchema] = None
 

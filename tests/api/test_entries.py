@@ -28,9 +28,31 @@ class TestEntries:
                     description="автотест: проверка создания записи",
                 )
         with allure.step("Проверить что status создания записи == success"):
-            # Ветка status=="error" (невалидная дата в /confirm) не покрыта нигде в наборе —
-            # найдено при ревизии 2026-10-28, не исправлено, оставлено как известный gap.
             assert result.status == "success"
+
+    @pytest.mark.parametrize(
+        "bad_date",
+        [
+            pytest.param("2026/07/14", id="slash_format"),
+            pytest.param("20260714", id="compact_iso_no_dashes"),
+            pytest.param("2026-W29-2", id="iso_week_date"),
+        ],
+    )
+    @allure.label("bug_id", "KAN-4")
+    @allure.title("[1.4.] Создание записи с невалидным форматом даты возвращает статус error")
+    def test_create_entry_with_invalid_date_returns_error_status(
+        self, vinny_api: VinnyApi, test_task: str, api_error_handler, bad_date
+    ):
+        with api_error_handler():
+            with allure.step(f"Создать запись с невалидным форматом даты '{bad_date}'"):
+                result = vinny_api.create_entry(
+                    task=test_task,
+                    entry_date=bad_date,
+                    time_spent="15m",
+                    description="автотест: невалидный формат даты",
+                )
+        with allure.step(f"Проверить что status == error для даты '{bad_date}'"):
+            assert result.status == "error"
 
     @allure.title("[1.3.] Данные созданной записи в Ассистенте совпадают с отправленными в него")
     def test_created_entry_data_matches_sent_data(self, vinny_api: VinnyApi, test_task: str, api_error_handler):

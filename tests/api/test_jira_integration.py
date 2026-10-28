@@ -20,6 +20,9 @@ class TestJiraWorklogDelivery:
         [
             pytest.param(1, "1h 45m", "тестовый дескрипшн, параметризация, позитивный кейс 1", id="task_1"),
             pytest.param(1, "30m", "тестовый дескрипшн, параметризация, позитивный кейс 2", id="task_1_second"),
+            pytest.param(1, "1d", "тестовый дескрипшн, граница форматов: единица измерения сутки", id="task_1_day_unit"),
+            pytest.param(1, "1w", "тестовый дескрипшн, граница форматов: единица измерения неделя", id="task_1_week_unit"),
+            pytest.param(1, "0m", "тестовый дескрипшн, граница: минимальная продолжительность, принимаемая Jira", id="task_1_zero_minutes"),
         ],
     )
     @allure.label("tc_id", "TC-011")
@@ -73,6 +76,8 @@ class TestJiraWorklogDelivery:
         "empty_time_spent": "TC-015",
         "empty_description": "TC-013",
         "whitespace_only_description": "TC-014",
+        "invalid_time_spent_format": "TC-015",
+        "negative_time_spent": "TC-015",
     }
 
     @pytest.mark.parametrize(
@@ -81,6 +86,8 @@ class TestJiraWorklogDelivery:
             pytest.param(1, "", "1й негативный кейс, пустое время", id="empty_time_spent"),
             pytest.param(1, "15m", "", id="empty_description"),
             pytest.param(1, "15m", "   ", id="whitespace_only_description"),
+            pytest.param(1, "abc", "2й негативный кейс, нечисловой формат времени", id="invalid_time_spent_format"),
+            pytest.param(1, "-5m", "3й негативный кейс, отрицательное время (граница с '0m' из TC-011)", id="negative_time_spent"),
         ],
     )
     @allure.title("Запись с невалидными данными не попадает в Jira")
