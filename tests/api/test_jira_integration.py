@@ -10,6 +10,8 @@ from utils.wait import wait_until
 JIRA_TOPIC = "jira-worklog-requests"
 JIRA_CONSUMER_GROUP = "jira-delivery"
 
+pytestmark = pytest.mark.usefixtures("drain_jira_delivery_queue")
+
 
 @pytest.mark.jira_integration
 class TestJiraWorklogDelivery:

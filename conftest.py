@@ -68,3 +68,15 @@ def kafka_ui_api() -> KafkaUiApi:
         url=os.getenv("KAFKA_UI_URL", "http://localhost:8090"),
         cluster="vinnie",
     )
+
+
+@pytest.fixture
+def drain_jira_delivery_queue(kafka_ui_api: KafkaUiApi):
+    """Дожидается lag=0 консьюмер-группы 'jira-delivery' по топику 'jira-worklog-requests'
+    ПЕРЕД тестом, а не только после него. Если предыдущий тест не дождался своего воркалога
+    и упал по assert, он не доходит до собственного финального wait_for_zero_lag — опоздавшее
+    сообщение остаётся в очереди и может долетать уже во время следующего теста, давая ложный
+    результат там, где реального дефекта нет. Используется через module-level pytestmark в
+    test_jira_integration.py / test_jira_sync.py, не глобально — не нужна тестам, не трогающим
+    эту очередь."""
+    kafka_ui_api.wait_for_zero_lag(topic="jira-worklog-requests", group_id="jira-delivery", timeout=90)
