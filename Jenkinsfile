@@ -48,8 +48,10 @@ pipeline {
             steps {
                 script {
                     // db-тесты рассчитаны на локальный Postgres (DB_HOST=localhost), а не на сеть
-                    // Jenkins-контейнера — поэтому в 'all' они исключены, а не просто пропущены маркером.
-                    def marker = params.CATEGORY == 'all' ? 'not db' : params.CATEGORY
+                    // Jenkins-контейнера, а chaos-тесты останавливают/пересоздают общие контейнеры
+                    // или меняют .env окружения — ломают среду для всех. Оба исключены из 'all',
+                    // а не просто пропущены маркером.
+                    def marker = params.CATEGORY == 'all' ? 'not db and not chaos' : params.CATEGORY
                     sh ".venv/bin/python -m pytest -m \"${marker}\" --clean-alluredir --alluredir=allure-results"
                 }
             }
