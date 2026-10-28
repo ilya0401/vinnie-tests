@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import allure
 import pytest
 from utils.vinny_API import VinnyApi
@@ -118,3 +120,39 @@ class TestJiraWorklogDelivery:
             id_before = worklog_before.id if worklog_before else None
             id_after = worklog_after.id if worklog_after else None
             assert id_after == id_before
+
+
+@pytest.mark.jira_integration
+class TestKafkaPublish:
+    """Явно: проверяем факт и содержимое публикации в Kafka напрямую — не доставку в Jira."""
+
+    @allure.label("tc_id", "TC-001")
+    @allure.title("Опубликованное в Kafka сообщение совпадает с данными подтверждённой записи")
+    def test_published_message_matches_confirmed_entry(
+        self,
+        vinny_api: VinnyApi,
+        kafka_ui_api: KafkaUiApi,
+        task_prefix: str,
+        api_error_handler,
+    ):
+        task = f"{task_prefix}-1"
+        time_spent = "20m"
+        description = f"автотест: контент Kafka-сообщения [{datetime.now().isoformat()}]"
+        with api_error_handler():
+            with allure.step(f"Создать запись в ассистенте для задачи {task}: '{description}'"):
+                result = vinny_api.create_entry_for_today(
+                    task=task,
+                    time_spent=time_spent,
+                    description=description,
+                )
+        with allure.step(f"Прочитать последнее сообщение топика '{JIRA_TOPIC}' через kafka-ui"):
+            message = kafka_ui_api.get_latest_message(JIRA_TOPIC)
+        with allure.step(
+            f"Проверить что сообщение в Kafka соответствует подтверждённой записи "
+            f"(entry_id={result.id}, task='{task}', time_spent='{time_spent}')"
+        ):
+            assert message is not None, f"Топик '{JIRA_TOPIC}' пуст"
+            assert message["entry_id"] == result.id
+            assert message["task"] == task
+            assert message["time_spent"] == time_spent
+            assert message["description"] == description

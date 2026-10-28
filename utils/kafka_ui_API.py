@@ -1,3 +1,5 @@
+import json
+
 from utils.base_API import BaseApi
 from utils.models.kafka_ui_models import ConsumerGroupInfo
 from utils.wait import wait_until
@@ -34,3 +36,19 @@ class KafkaUiApi(BaseApi):
                 f"Lag консьюмер-группы '{group_id}' по топику '{topic}' не вернулся к 0 "
                 f"за {timeout}с (последнее значение: {last_lag})"
             )
+
+    def get_latest_message(self, topic: str) -> dict | None:
+        """Возвращает распарсенный payload последнего сообщения топика, либо None если
+        топик пуст. Обычный /messages в этом форке kafka-ui отключён ("Not supported") —
+        используется SSE-эндпоинт /messages/v2, отдающий построчные события "data: {...}"."""
+        response = self.get(
+            endpoint=f"/api/clusters/{self.cluster}/topics/{topic}/messages/v2",
+            params={"mode": "LATEST", "limit": 1},
+        )
+        for line in response.raw.text.splitlines():
+            if not line.startswith("data:"):
+                continue
+            event = json.loads(line[len("data:"):])
+            if event.get("type") == "MESSAGE":
+                return json.loads(event["message"]["value"])
+        return None
